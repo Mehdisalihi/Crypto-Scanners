@@ -1,0 +1,106 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Validation blueprint for PriceAlert
+    function isValidPriceAlert(data) {
+      return data.keys().hasAll([
+          'id', 'uid', 'pairAddress', 'tokenAddress', 'symbol', 'name',
+          'chainId', 'targetPrice', 'initialPrice', 'condition', 'status', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'uid', 'pairAddress', 'tokenAddress', 'symbol', 'name',
+          'chainId', 'targetPrice', 'initialPrice', 'condition', 'status',
+          'triggeredAt', 'triggeredPrice', 'createdAt'
+        ])
+        && data.uid is string && data.uid == request.auth.uid
+        && data.id is string && data.id.size() > 0 && data.id.size() <= 128 && data.id.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.pairAddress is string && data.pairAddress.size() > 0 && data.pairAddress.size() <= 160
+        && data.tokenAddress is string && data.tokenAddress.size() > 0 && data.tokenAddress.size() <= 160
+        && data.symbol is string && data.symbol.size() > 0 && data.symbol.size() <= 32
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.chainId is string && data.chainId.size() > 0 && data.chainId.size() <= 40
+        && data.targetPrice is number && data.targetPrice > 0
+        && data.initialPrice is number && data.initialPrice >= 0
+        && data.condition in ['above', 'below']
+        && data.status in ['active', 'triggered']
+        && data.createdAt is string && data.createdAt.size() > 0 && data.createdAt.size() <= 64
+        && (!('triggeredAt' in data) || data.triggeredAt == null || (data.triggeredAt is string && data.triggeredAt.size() <= 64))
+        && (!('triggeredPrice' in data) || data.triggeredPrice == null || (data.triggeredPrice is number && data.triggeredPrice >= 0));
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      allow list: if isAuthenticated();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+    }
+
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated() && (resource.data.referrerUid == request.auth.uid || resource.data.referredUid == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.referredUid == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.referredUid == request.auth.uid && request.resource.data.referredUid == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.referredUid == request.auth.uid;
+    }
+
+    match /savedTokens/{savedTokenId} {
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+    }
+
+    match /priceAlerts/{alertId} {
+      allow get: if isAuthenticated() && isValidId(alertId) && existing().uid == request.auth.uid;
+      allow list: if isAuthenticated() && existing().uid == request.auth.uid;
+      allow create: if isAuthenticated()
+        && isValidId(alertId)
+        && isValidPriceAlert(incoming())
+        && incoming().id == alertId
+        && incoming().status == 'active';
+      allow update: if isAuthenticated()
+        && isValidId(alertId)
+        && existing().uid == request.auth.uid
+        && isValidPriceAlert(incoming())
+        && incoming().uid == existing().uid
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && existing().status == 'active'
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'triggeredAt', 'triggeredPrice'])
+          || incoming().diff(existing()).affectedKeys().hasOnly(['targetPrice', 'condition'])
+        );
+      allow delete: if isAuthenticated() && isValidId(alertId) && existing().uid == request.auth.uid;
+    }
+  }
+}

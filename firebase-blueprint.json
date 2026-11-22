@@ -1,0 +1,107 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with sub subscription status and referral metrics",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "subscriptionStatus": { "type": "string", "enum": ["free", "pro"] },
+        "proUntil": { "type": "string" },
+        "referralCode": { "type": "string" },
+        "referredBy": { "type": "string" },
+        "referralCount": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "subscriptionStatus", "referralCode", "referralCount", "createdAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Subscription payment history record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "status": { "type": "string" },
+        "plan": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "uid", "amount", "currency", "status", "plan", "createdAt"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Tracks users referred to the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "referrerUid": { "type": "string" },
+        "referredUid": { "type": "string" },
+        "referredEmail": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "referrerUid", "referredUid", "referredEmail", "createdAt"]
+    },
+    "SavedToken": {
+      "title": "SavedToken",
+      "description": "Saved token address for personalized alert scanning",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "tokenAddress": { "type": "string" },
+        "symbol": { "type": "string" },
+        "chainId": { "type": "string" },
+        "score": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "uid", "tokenAddress", "symbol", "chainId", "createdAt"]
+    },
+    "PriceAlert": {
+      "title": "PriceAlert",
+      "description": "Custom price threshold alert for a crypto token or market index",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "uid": { "type": "string", "maxLength": 128 },
+        "pairAddress": { "type": "string", "maxLength": 160 },
+        "tokenAddress": { "type": "string", "maxLength": 160 },
+        "symbol": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 100 },
+        "chainId": { "type": "string", "maxLength": 40 },
+        "targetPrice": { "type": "number" },
+        "initialPrice": { "type": "number" },
+        "condition": { "type": "string", "enum": ["above", "below"] },
+        "status": { "type": "string", "enum": ["active", "triggered"] },
+        "triggeredAt": { "type": "string", "maxLength": 64 },
+        "triggeredPrice": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "uid", "pairAddress", "tokenAddress", "symbol", "name", "chainId", "targetPrice", "initialPrice", "condition", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Payments"
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Referral tracking records"
+    },
+    "/savedTokens/{savedTokenId}": {
+      "schema": "SavedToken",
+      "description": "Saved and watched tokens"
+    },
+    "/priceAlerts/{alertId}": {
+      "schema": "PriceAlert",
+      "description": "User custom price threshold alerts"
+    }
+  }
+}

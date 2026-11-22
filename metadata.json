@@ -1,0 +1,8 @@
+{
+  "name": "Crypto Scanners",
+  "description": "Real-time AI-powered crypto pump predictor and scanner with DEX analytics, multi-chain data, referrals, and pro tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

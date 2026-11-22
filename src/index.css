@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer utilities {
+  /* Neon Glow Effects */
+  .glow-green {
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.6), 0 0 20px rgba(34, 197, 94, 0.2);
+  }
+  .glow-red {
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.6), 0 0 20px rgba(239, 68, 68, 0.2);
+  }
+  .glow-yellow {
+    text-shadow: 0 0 10px rgba(234, 179, 8, 0.6), 0 0 20px rgba(234, 179, 8, 0.2);
+  }
+  
+  .border-glow-green {
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+  }
+  .border-glow-red {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+  }
+  .border-glow-yellow {
+    box-shadow: 0 0 15px rgba(234, 179, 8, 0.2);
+  }
+}
+
+/* Custom terminal background styling (dual-theme) */
+:root {
+  --scrollbar-track: #EEF2F7;
+  --scrollbar-thumb: #CBD5E1;
+  --scrollbar-thumb-hover: #94A3B8;
+}
+
+.dark {
+  --scrollbar-track: #0D0D0D;
+  --scrollbar-thumb: #1F2937;
+  --scrollbar-thumb-hover: #374151;
+}
+
+body {
+  background-color: #F4F6FA;
+  color: #0F172A;
+  font-family: var(--font-sans);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.dark body {
+  background-color: #05060A;
+  color: #E5E7EB;
+}
+
+/* Blinking cursor animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-cursor {
+  animation: blink 1s infinite;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
