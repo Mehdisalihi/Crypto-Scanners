@@ -1683,15 +1683,34 @@ export default function App() {
         ? 'Cette méthode n’est pas encore activée dans Firebase Console. Utilisez Google ou activez Email/Password dans Firebase Authentication.'
         : 'This sign-in provider is not enabled in Firebase Console yet. Use "Continue with Google" above or enable Email/Password under Firebase Console → Authentication → Sign-in method.';
     }
-    if (code === 'auth/popup-closed-by-user') {
+    if (code === 'auth/unauthorized-domain') {
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+      return lang === 'ar'
+        ? `النطاق الحالي (${host}) غير مضاف إلى النطاقات المصرح بها في Firebase Authentication. أضف "${host}" في Firebase Console ← Authentication ← Settings ← Authorized domains، أو سجّل الدخول بالبريد الإلكتروني أدناه.`
+        : lang === 'fr'
+        ? `Le domaine actuel (${host}) n’est pas autorisé dans Firebase Authentication. Ajoutez « ${host} » dans Firebase Console → Authentication → Settings → Authorized domains.`
+        : `Domain "${host}" is not authorized for OAuth in Firebase. Add "${host}" in Firebase Console → Authentication → Settings → Authorized domains, or sign in with Email below.`;
+    }
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
       return lang === 'ar'
         ? 'تم إغلاق نافذة تسجيل Google قبل إتمام العملية.'
+        : lang === 'fr'
+        ? 'La fenêtre de connexion Google a été fermée avant la fin.'
         : 'Google sign-in popup was closed before completing.';
     }
     if (code === 'auth/popup-blocked') {
       return lang === 'ar'
         ? 'تم حظر النافذة المنبثقة من المتصفح. اسمح بالنوافذ المنبثقة وحاول مجدداً.'
+        : lang === 'fr'
+        ? 'Fenêtre contextuelle bloquée par le navigateur. Autorisez les pop-ups et réessayez.'
         : 'Popup blocked by browser. Please allow popups and try again.';
+    }
+    if (code === 'auth/network-request-failed') {
+      return lang === 'ar'
+        ? 'تعذر الاتصال بخادم المصادقة. تحقق من اتصال الإنترنت وحاول مجدداً.'
+        : lang === 'fr'
+        ? 'Erreur réseau lors de l’authentification. Vérifiez votre connexion.'
+        : 'Network error reaching authentication servers. Check your connection and try again.';
     }
     return err?.message || (lang === 'ar' ? 'حدث خطأ أثناء المصادقة.' : 'Authentication failed.');
   };
