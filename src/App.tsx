@@ -56,8 +56,7 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged,
-  signInAnonymously as firebaseSignInAnonymously
+  onAuthStateChanged
 } from 'firebase/auth';
 import { 
   doc, 
@@ -1683,13 +1682,20 @@ export default function App() {
         ? 'Cette méthode n’est pas encore activée dans Firebase Console. Utilisez Google ou activez Email/Password dans Firebase Authentication.'
         : 'This sign-in provider is not enabled in Firebase Console yet. Use "Continue with Google" above or enable Email/Password under Firebase Console → Authentication → Sign-in method.';
     }
+    if (code === 'auth/admin-restricted-operation') {
+      return lang === 'ar'
+        ? 'تم تقييد تسجيل الدخول كضيف في إعدادات Firebase. استخدم إنشاء حساب بالبريد الإلكتروني وكلمة المرور أو Google.'
+        : lang === 'fr'
+        ? 'L’accès invité est désactivé dans Firebase. Créez un compte par e-mail ou Google.'
+        : 'Guest access is disabled in Firebase. Please create an account with Email or Google.';
+    }
     if (code === 'auth/unauthorized-domain') {
       const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
       return lang === 'ar'
-        ? `النطاق الحالي (${host}) غير مضاف إلى النطاقات المصرح بها في Firebase Authentication. أضف "${host}" في Firebase Console ← Authentication ← Settings ← Authorized domains، أو سجّل الدخول بالبريد الإلكتروني أدناه.`
+        ? `النطاق (${host}) غير مصرح به بعد لـ Google OAuth في Firebase. أضف "${host}" في Firebase Console ← Authentication ← Settings ← Authorized domains — ويمكنك الآن إنشاء حساب بالبريد الإلكتروني وكلمة المرور أدناه مباشرة!`
         : lang === 'fr'
-        ? `Le domaine actuel (${host}) n’est pas autorisé dans Firebase Authentication. Ajoutez « ${host} » dans Firebase Console → Authentication → Settings → Authorized domains.`
-        : `Domain "${host}" is not authorized for OAuth in Firebase. Add "${host}" in Firebase Console → Authentication → Settings → Authorized domains, or sign in with Email below.`;
+        ? `Le domaine (${host}) n’est pas encore autorisé pour Google OAuth. Ajoutez « ${host} » dans Firebase Console → Authentication → Settings → Authorized domains, ou inscrivez-vous par e-mail ci-dessous.`
+        : `Domain "${host}" is not yet authorized for Google OAuth in Firebase. Add "${host}" in Firebase Console → Authentication → Settings → Authorized domains — or create your account with Email & Password below right now.`;
     }
     if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
       return lang === 'ar'
@@ -1700,10 +1706,10 @@ export default function App() {
     }
     if (code === 'auth/popup-blocked') {
       return lang === 'ar'
-        ? 'تم حظر النافذة المنبثقة من المتصفح. اسمح بالنوافذ المنبثقة وحاول مجدداً.'
+        ? 'تم حظر النافذة المنبثقة من المتصفح. اسمح بالنوافذ المنبثقة أو أنشئ حسابك بالبريد الإلكتروني أدناه مباشرة.'
         : lang === 'fr'
-        ? 'Fenêtre contextuelle bloquée par le navigateur. Autorisez les pop-ups et réessayez.'
-        : 'Popup blocked by browser. Please allow popups and try again.';
+        ? 'Fenêtre contextuelle bloquée par le navigateur. Autorisez les pop-ups ou utilisez l’e-mail ci-dessous.'
+        : 'Popup blocked by browser. Allow popups or create your account with Email & Password below.';
     }
     if (code === 'auth/network-request-failed') {
       return lang === 'ar'
@@ -1777,25 +1783,6 @@ export default function App() {
       const msg = getFriendlyAuthError(err);
       setAuthError(msg);
       if (!showAuthModal) {
-        setShowAuthModal(true);
-      }
-    } finally {
-      setIsAuthSubmitting(false);
-    }
-  };
-
-  const signInAnonymously = async () => {
-    setAuthError('');
-    setIsAuthSubmitting(true);
-    try {
-      await firebaseSignInAnonymously(auth);
-      showToast(lang === 'ar' ? 'تم الدخول بحساب ضيف فوري!' : 'Logged in as Instant Guest!');
-      setShowAuthModal(false);
-    } catch (err: any) {
-      const msg = getFriendlyAuthError(err);
-      setAuthError(msg);
-      if (!showAuthModal) {
-        setShowHighSignalAlertModal(false);
         setShowAuthModal(true);
       }
     } finally {
@@ -5385,7 +5372,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-[#08090E] border border-slate-200 dark:border-[#1C2030] rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-sm w-full relative shadow-2xl font-sans text-[11px] sm:text-xs"
+              className="bg-white dark:bg-[#08090E] border border-slate-200 dark:border-[#1C2030] rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-sm w-full relative shadow-2xl font-sans text-[11px] sm:text-xs max-h-[92vh] overflow-y-auto"
             >
               <button 
                 type="button"
@@ -5485,12 +5472,17 @@ export default function App() {
                     {lang === 'ar' ? 'البريد الإلكتروني' : 'EMAIL ADDRESS'}
                   </label>
                   <input 
-                    type="email" 
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     required
                     value={authEmail}
                     onChange={(e) => setAuthEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full bg-slate-50 dark:bg-[#0C0E14] border border-slate-200 dark:border-[#1C2030] focus:border-emerald-500 dark:focus:border-emerald-400 rounded-lg py-2 px-2.5 sm:py-2.5 sm:px-3 text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-700 font-mono"
+                    className="w-full bg-slate-50 dark:bg-[#0C0E14] border border-slate-200 dark:border-[#1C2030] focus:border-emerald-500 dark:focus:border-emerald-400 rounded-lg py-2 px-2.5 sm:py-2.5 sm:px-3 text-sm sm:text-xs text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-700 font-mono"
                   />
                 </div>
 
@@ -5499,13 +5491,14 @@ export default function App() {
                     {lang === 'ar' ? 'كلمة المرور (6 أحرف فأكثر)' : 'PASSWORD (MIN 6 CHARS)'}
                   </label>
                   <input 
-                    type="password" 
+                    type="password"
+                    autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
                     required
                     minLength={6}
                     value={authPassword}
                     onChange={(e) => setAuthPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-slate-50 dark:bg-[#0C0E14] border border-slate-200 dark:border-[#1C2030] focus:border-emerald-500 dark:focus:border-emerald-400 rounded-lg py-2 px-2.5 sm:py-2.5 sm:px-3 text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-700 font-mono"
+                    className="w-full bg-slate-50 dark:bg-[#0C0E14] border border-slate-200 dark:border-[#1C2030] focus:border-emerald-500 dark:focus:border-emerald-400 rounded-lg py-2 px-2.5 sm:py-2.5 sm:px-3 text-sm sm:text-xs text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-700 font-mono"
                   />
                 </div>
 
@@ -5515,13 +5508,14 @@ export default function App() {
                       {lang === 'ar' ? 'تأكيد كلمة المرور' : 'CONFIRM PASSWORD'}
                     </label>
                     <input 
-                      type="password" 
+                      type="password"
+                      autoComplete="new-password"
                       required
                       minLength={6}
                       value={authConfirmPassword}
                       onChange={(e) => setAuthConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-slate-50 dark:bg-[#0C0E14] border border-slate-200 dark:border-[#1C2030] focus:border-emerald-500 dark:focus:border-emerald-400 rounded-lg py-2 px-2.5 sm:py-2.5 sm:px-3 text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-700 font-mono"
+                      className="w-full bg-slate-50 dark:bg-[#0C0E14] border border-slate-200 dark:border-[#1C2030] focus:border-emerald-500 dark:focus:border-emerald-400 rounded-lg py-2 px-2.5 sm:py-2.5 sm:px-3 text-sm sm:text-xs text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-700 font-mono"
                     />
                   </div>
                 )}
@@ -5539,17 +5533,24 @@ export default function App() {
                 </button>
               </form>
 
-              <div className="mt-3 sm:mt-4 text-center text-slate-500 dark:text-zinc-500">
-                <div className="border-t border-slate-200 dark:border-[#141824] pt-2.5 sm:pt-3 mt-2.5 sm:mt-3">
-                  <button 
+              <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-[#141824] text-center text-[10.5px] text-slate-500 dark:text-zinc-500">
+                {authMode === 'register' ? (
+                  <button
                     type="button"
-                    disabled={isAuthSubmitting}
-                    onClick={signInAnonymously}
-                    className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-[#0C0E14] dark:hover:bg-[#161924] text-slate-600 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 py-2 rounded-xl text-[10px] border border-slate-200 dark:border-[#1C2030] transition disabled:opacity-50"
+                    onClick={() => { setAuthMode('login'); setAuthError(''); }}
+                    className="hover:text-emerald-600 dark:hover:text-emerald-400 transition"
                   >
-                    {lang === 'ar' ? 'دخول سريع كضيف (مؤقت)' : 'Instant Guest Access'}
+                    {lang === 'ar' ? 'لديك حساب بالفعل؟ سجّل الدخول' : 'Already have an account? Sign In'}
                   </button>
-                </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('register'); setAuthError(''); }}
+                    className="hover:text-emerald-600 dark:hover:text-emerald-400 transition"
+                  >
+                    {lang === 'ar' ? 'ليس لديك حساب؟ أنشئ حساباً الآن' : 'New here? Create an account'}
+                  </button>
+                )}
               </div>
 
             </motion.div>

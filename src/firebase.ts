@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { initializeFirestore, getFirestore, doc, getDocFromServer, type FirestoreSettings } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
 
@@ -25,7 +25,7 @@ export const db = (() => {
   }
 })();
 
-export { signInWithPopup, signInAnonymously };
+export { signInWithPopup };
 
 export enum OperationType {
   CREATE = 'create',
