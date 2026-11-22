@@ -1,7 +1,6 @@
 import express from 'express';
 import { createServer as createHttpServer } from 'http';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
@@ -1673,15 +1672,21 @@ function startLiveMarketEngine() {
   }, 1000);
 }
 
-startLiveMarketEngine();
+if (!process.env.VERCEL) {
+  startLiveMarketEngine();
+}
 
 // 2. API: Live / Trending multi-chain + CEX tokens
 app.get('/api/trending', async (req, res) => {
   try {
-    if (cexCatalogMap.size === 0 || trackedPairsMap.size === 0) {
+    const isServerless = Boolean(process.env.VERCEL);
+    const staleInServerless = isServerless && Date.now() - lastCexCatalogRefresh > 15000;
+    if (cexCatalogMap.size === 0 || trackedPairsMap.size === 0 || staleInServerless) {
       await Promise.allSettled([
-        cexCatalogMap.size === 0 ? refreshCexCatalog() : Promise.resolve(),
-        trackedPairsMap.size === 0 ? discoverNewDexTokens().then(refreshTrackedDexPairs1s) : Promise.resolve(),
+        cexCatalogMap.size === 0 || staleInServerless ? refreshCexCatalog() : Promise.resolve(),
+        trackedPairsMap.size === 0 || staleInServerless
+          ? discoverNewDexTokens().then(refreshTrackedDexPairs1s)
+          : Promise.resolve(),
       ]);
       rebuildLiveTokensCache();
     }
@@ -1706,7 +1711,8 @@ app.get('/api/trending', async (req, res) => {
 // 2b. API: Real-time global market indices (Binance 1s live feed + CoinGecko fallback)
 app.get('/api/market-indices', async (req, res) => {
   try {
-    if (liveIndices.length === 0) {
+    const lastIdxTs = liveIndices[0]?.updatedAt || 0;
+    if (liveIndices.length === 0 || (process.env.VERCEL && Date.now() - lastIdxTs > 5000)) {
       await refreshGlobalIndices1s();
     }
     if (liveIndices.length > 0) {
@@ -1729,14 +1735,21 @@ app.get('/api/market-indices', async (req, res) => {
 });
 
 // 2c. API: Real-time 1-second Server-Sent Events (SSE) live stream
-app.get('/api/live-stream', (req, res) => {
+app.get('/api/live-stream', async (req, res) => {
+  if (process.env.VERCEL && (liveTokensCache.length === 0 || liveIndices.length === 0)) {
+    await Promise.allSettled([
+      cexCatalogMap.size === 0 ? refreshCexCatalog() : Promise.resolve(),
+      refreshGlobalIndices1s(),
+      trackedPairsMap.size === 0 ? discoverNewDexTokens().then(refreshTrackedDexPairs1s) : Promise.resolve(),
+    ]);
+    rebuildLiveTokensCache();
+  }
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders?.();
-
-  sseClients.add(res);
 
   const initialPayload = JSON.stringify({
     tick: engineTick,
@@ -1749,6 +1762,13 @@ app.get('/api/live-stream', (req, res) => {
     highSignalHistory15m,
   });
   res.write(`data: ${initialPayload}\n\n`);
+
+  if (process.env.VERCEL) {
+    res.end();
+    return;
+  }
+
+  sseClients.add(res);
 
   const keepAlive = setInterval(() => {
     try {
@@ -1854,6 +1874,7 @@ async function startServer() {
   const httpServer = createHttpServer(app);
 
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import('vite');
     const hmrDisabled = process.env.DISABLE_HMR === 'true';
     const vite = await createViteServer({
       server: {
@@ -1892,4 +1913,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;

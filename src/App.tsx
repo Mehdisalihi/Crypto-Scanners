@@ -3721,8 +3721,8 @@ export default function App() {
                   <div className="mb-4 sm:mb-6 bg-amber-500/10 dark:bg-amber-950/20 border border-amber-500/30 rounded-xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
                     <div className="text-[11px] sm:text-xs text-amber-700 dark:text-amber-300">
                       {lang === 'ar'
-                        ? 'سجّل الدخول أو ادخل كضيف لحفظ تنبيهاتك ومزامنتها عبر Firestore.'
-                        : 'Sign in or enter as a Guest to save and monitor price alerts in Firestore.'}
+                        ? 'سجّل الدخول أو أنشئ حساباً لحفظ تنبيهاتك ومزامنتها عبر Firestore.'
+                        : 'Sign in or create an account to save and monitor price alerts in Firestore.'}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <button
